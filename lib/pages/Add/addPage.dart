@@ -1,9 +1,16 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:its_pill_time/models/med.dart';
 import 'package:its_pill_time/pages/Home/homePage.dart';
+import 'package:its_pill_time/pages/Home/widgets/homePageLayout.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AddPage extends StatefulWidget {
   AddPage({Key? key}) : super(key: key);
+
+  List<Med> meds = <Med>[];
 
   @override
   State<AddPage> createState() => _AddPageState();
@@ -12,19 +19,43 @@ class AddPage extends StatefulWidget {
 class _AddPageState extends State<AddPage> {
   TimeOfDay? time;
   TimeOfDay? lastTime;
-
+  
   final formKey = GlobalKey<FormState>();
   String medName = '';
-  String? medFrequency = '1';
+  int medFrequency = 1;
   bool lastTimeActive = false;
 
-  List<DropdownMenuItem<String>> dropdownItems = [
-    DropdownMenuItem(child: Text("1"), value: "1"),
-    DropdownMenuItem(child: Text("2"), value: "2"),
-    DropdownMenuItem(child: Text("3"), value: "3"),
-    DropdownMenuItem(child: Text("4"), value: "4"),
-    DropdownMenuItem(child: Text("5"), value: "5"),
-    DropdownMenuItem(child: Text("6"), value: "6"),
+ 
+
+  _AddPageState(){
+    load();
+  }
+
+  Future load() async {
+    var prefs = await SharedPreferences.getInstance();
+    var data = prefs.getString("data");
+
+    if (data != null){
+      Iterable decoded = jsonDecode(data);
+      List<Med> result = decoded.map((e) => Med.fromJson(e)).toList();
+      setState(() {
+        widget.meds = result;
+      });
+    }
+  }
+    save() async{
+    var prefs = await SharedPreferences.getInstance();
+    await prefs.setString("data", jsonEncode(widget.meds));
+  }
+
+
+  List<DropdownMenuItem<int>> dropdownItems = [
+    DropdownMenuItem(child: Text("1"), value: 1),
+    DropdownMenuItem(child: Text("2"), value: 2),
+    DropdownMenuItem(child: Text("3"), value: 3),
+    DropdownMenuItem(child: Text("4"), value: 4),
+    DropdownMenuItem(child: Text("5"), value: 5),
+    DropdownMenuItem(child: Text("6"), value: 6),
   ];
 
   @override
@@ -133,13 +164,13 @@ class _AddPageState extends State<AddPage> {
                               SizedBox(
                                 height: 8,
                               ),
-                              DropdownButtonFormField<String>(
+                              DropdownButtonFormField<int>(
                                 value: medFrequency,
                                 items: dropdownItems,
-                                onChanged: (String? newValue) {
+                                onChanged: (int? newValue) {
                                   setState(() {
                                     medFrequency = newValue!;
-                                    if (medFrequency == "1") {
+                                    if (medFrequency == 1) {
                                       lastTimeActive = false;
                                     } else {
                                       lastTimeActive = true;
@@ -272,8 +303,11 @@ class _AddPageState extends State<AddPage> {
                                     primary: Color(0xFF09dd9d)),
                                 onPressed: () {
                                   if (formKey.currentState!.validate()) {
-                                    print(
-                                        "${medFrequency} - ${medName} - ${time} - ${lastTime} ");
+                                    print("${medFrequency} - ${medName} - ${time} - ${lastTime} ");
+                                    var medToAdd = Med(title: medName, done: false, firstTime: time!.format(context).toString(),lastTime: lastTime,frequency: medFrequency.toString());
+                                    print(medToAdd.toString());
+                                    widget.meds.add(Med(title: medName, done: false, firstTime: time!.format(context).toString(),lastTime: lastTime,frequency: medFrequency.toString()));
+                                    save();
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                           backgroundColor: Color(0xFF09dd9d),
